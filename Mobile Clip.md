@@ -49,19 +49,38 @@ results in improved accuracy wrt original dataset.
 #### Training Architecture: Multi-modal reinforced training
 We introduce multi-modal reinforced training, a novel training strategy that incorporates knowledge transfer from a pre-trained image captioning model and an ensemble of strong CLIP models to improve learning efficiency.
 
-Our proposed multi-modal reinforced training also includes cross-modal affinity mimicking [68 ]. Further, we extend uni- modal model ensembling [33, 46] to multimodal setup, and store targets obtained from an ensemble of CLIP models.
+Our proposed multi-modal reinforced training also includes: 
+1. **cross-modal affinity mimicking** [68 ]
+2. **extend uni-modal model ensembling** to multimodal setup [33, 46]
+3. **store targets obtained from an ensemble of CLIP models**
+4. **we extend the dataset reinforcement strategy** to the multi-modal setup [14 ]
+ 
 
-We extend the dataset reinforcement strategy [14 ] to the multi-modal setup of CLIP. 
+Our proposed reinforced multi-modal datasets, result in **significant accuracy improvement** without adding a training-time computational overhead.
 
-Our proposed reinforced multi-modal datasets result in significant accuracy improvement without adding a training-time computational overhead.
-
--- 
-training leverages knowledge transfer 
-Two main components: 
-1. leveraging the knowledge of an image captioning model via synthetic captions
-2. knowledge distillation of image-text alignments from an ensemble of strong pretrained CLIP models. We follow the dataset reinforcement strategy of [ 14] and store the additional knowledge (synthetic captions and teacher embeddings) in the dataset (see Fig. 3)
 ### 2.1 Reinforced Training
-#### 2.1.1 Dataset Reinforcement
+
+#### 2.1.1 Training
+Training, leverages knowledge transfer two main components: 
+1. leveraging the knowledge of an image captioning model via **synthetic captions**
+2. knowledge distillation of image-text alignments from an ensemble of strong pretrained CLIP models **through the dataset reinforcement strategy.** We store the additional knowledge (synthetic captions and teacher embeddings) in the "reiforced" dataset (see Fig. 3)
+
+
+##### Loss Function
+take a look at the paper, too long to copy it here now.
+
+##### Efficient Training
+For every sample, we read the image $x_{img}^{(i)}$ and the corresponding ground-truth caption $x^{(i)}_{txt}$ form the dataset.
+Then we randomly load one of stored augmentation parameters $a^{(i,j)}$ and reproduce the augmented image $\hat{x}^{(i,j)}_{img}$ . We also randomly load one of synthetic captions $x_{syn}^{(i,s)}$. Finally we read the stored embeddings $\psi_{img}^{(i,j,k)}$, $\psi_{syn}^{(i,s,k)}$ and $\psi_{txt}^{(i,k)}$, corresponding to the *K* teacher models.
+Using this data we construct two data batches:
+- $\mathcal{B}_{real}$ augmented image, real caption pairs
+- $\mathcal{B}_{syn}$ augmented image, synthetic caption pairs
+and compute our trainig loss separately on both. The final loss is:
+$$\sum_{\mathcal{B} \in \{\mathcal{B}_{real}, \mathcal{B}_{syn}\}} \mathcal{L}_{Total}(\mathcal{B})$$
+Note that we can compute the total loss after a forward pass of the student model without any extra teacher related computations since the teacher embeddings required to compute the distillation loss are readily available as part of the dataset.
+
+
+#### 2.1.2 Dataset Reinforcement
 
 Reinforce [14] the image-text DataComp [18] adding sysnthetic captions and embedding from a strong ensemble of pretrained CLIP models (From table 12):
 - teacher 1: `openai-ViT-L-14`
@@ -100,47 +119,47 @@ We compute the feature embeddings of these models for augmented images $\hat{x}^
 ##### Reinforced Dataset
 We store the image augmentation parameters a (i,j) , synthetic captions $x^{(i,s)}_{syn}$ , feature embeddings  $\psi^{(i,j,k)}_{img}$ , $\psi^{(i,s,k)}_{syn}$ and $\psi^{(i,k)}_{txt}$ of the CLIP teachers as additional knowledge in the dataset along with the original image $x^{(i)}_{img}$ and caption $x^{(i)}_{txt}$ (see Fig. 3c).
 
-#### 2.1.2 Training
-##### Loss Function
-take a look at the paper, too long to copy it here now.
-##### Efficient Training
-For every sample, we read the image $x_{img}^{(i)}$ and the corresponding ground-truth caption $x^{(i)}_{txt}$ form the dataset.
-Ten we randomly load one of stored augmentation parameters $a^{(i,j)}$ and reproduce the augmented image $\hat{x}^{(i,j)}_{img}$ . We also randomly load one of synthetic captions $x_{syn}^{(i,s)}$. Finally we read the stored embeddings $\psi_{img}^{(i,j,k)}$, $\psi_{syn}^{(i,s,k)}$ and $\psi_{txt}^{(i,k)}$, corresponding to the *K* teacher models.
-Using this data we construct two data batches:
-- $\mathcal{B}_{real}$ augmented image, real caption pairs
-- $\mathcal{B}_{syn}$ augmented image, synthetic caption pairs
-and compute our trainig loss separately on both. The final loss is:
-$$\sum_{\mathcal{B} \in \{\mathcal{B}_{real}, \mathcal{B}_{syn}\}} \mathcal{L}_{Total}(\mathcal{B})$$
-Note that we can compute the total loss after a forward pass of the student model without any extra teacher related computations since the teacher embeddings required to compute the distillation loss are readily available as part of the dataset.
+
 
 ### 2.2 Model Architecture
 Using DataCompDR a new family of mobile-friendly aligned image-text encoders called MobileCLIP was developed, with a better latency-accuracy tradeoff compared to the previous works.
 
-We design a new family of mobile-friendly CLIP models, MobileCLIP. Variants of MobileCLIP use hybrid CNN- transformer architectures with structural reparametrization in image and text encoders to reduce the size and latency. • We introduce multi-modal reinforced training, a novel training strategy that incorporates knowledge transfer from a pre-trained image captioning model and an ensemble of strong CLIP models to improve learning efficiency.
+Variants of MobileCLIP use hybrid CNN/transformer architectures with **structural reparametrization in image and text encoders** to reduce the size and latency.  
 
-e introduce an improved convolution-transformer hybrid architecture for both vision and text modalities, that improve over recent state-of-the-art like [ 22, 38 , 44 , 53 ]. 
+*"We also introduced an improved convolution-transformer hybrid architecture for both vision and text modalities, that improve over recent state-of-the-art like [ 22, 38 , 44 , 53 ]."*
 
 #### 2.2.1 Text Encoder
-- Classic CLIP is paired the vision transformer with a classical transformer with self-attention layers for text encoding; this works well but it's not efficient
-- Recent work [67] showed that convolutions can be as effective for text encoding
-- We found that purely convolutional architectures underperform their transformer counterparts
-- We introduce a ***hybrid text encoder which makes use of 1-D convolutions and self-attention layers***: *Text-RepMixer* which decouples train-time and inference-time architectures.
-- Inspured by reparametrizable convolutional token mixing (RepMixer, introduced in [62]). More in the paper and Appendix F. (It's probably quite complex lol)
+In classic CLIP is paired the vision transformer with a classical transformer with self-attention layers for text encoding; this works well but it's not efficient.
+- Recent work [67] showed that **convolutions can be as effective for text encoding** but we found that purely convolutional architectures underperform their transformer counterparts.
+- We introduce a **hybrid text encoder(Conv/Transf) which makes use of 1-D convolutions and self-attention layers**: *Text-RepMixer* which decouples train-time and inference-time architectures.
+- Inspured by reparametrizable convolutional token mixing (RepMixer, introduced in [62]). More in the paper and Appendix F.
 
-This encoder is smaller, faster and has similar performance as the base text encoder paired with ViT-S/16.
+**This encoder is smaller, faster and has similar performance as the base text encoder paired with ViT-S/16.**
+
+##### Hybrid Implementation
+1. Ablation on the convolutional text encoder with 6-layers, 11 size kernel was the best tradeoff
+2. Use depth-wise 2D convolutional layers(for efficency)
+3. Reshaping of the 3d input tensor in to the *BC1S* standard
+4. "The FFN layers enable interactions between token’s channel dimensions. Since the convolution layer is 2D, we simply reuse the reparameterization process described in [62]"
+
 #### 2.2.2 Image Encoder
 For Mobile-CLIP we introduce an improved hybrid vision transformer called MCi based on the recent FastViT [62].
 To improve parameter efficiency we lower the expansion ration to 3.0 and increase the depth of the architecture. More in Appendix A.
 
 ##### Further Improvements
 The optimizations introduced in [3 , 68 ] can be used to further improve efficiency of our models.
-#### Architectural design techniques
+#### 2.2.3 Architectural design techniques
+
 ##### Structural Reparametrization
 9. TODO
 10. TODO
 11. TODO
 21. TODO
 61. TODO
+
 ##### Convolutional Token Mixing
 62. TODO
 
+##### RepMixer
+
+![RepMixer](./images/RepMixer.png)
