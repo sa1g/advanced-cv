@@ -9,7 +9,7 @@
 [61] forse dare uno sguardo
 [18] (scaricato) Datacomp: In search of the next generation of multimodal datasets -- il dataset usato come base per creare il loro dataset rinforzato
 [14] Reinforce Data
-[47] (scaricato) Learning Transferable Visual Models From Natural Language Supervision -- standard multi-modal contrastive learning -- usato come esempio negativo: *at small-scale results in poor accuracies, which do not provide a useful signal to guide architecture design choices*.
+[47] (scaricato) **CLIP paper** Learning Transferable Visual Models From Natural Language Supervision -- standard multi-modal contrastive learning -- usato come esempio negativo: *at small-scale results in poor accuracies, which do not provide a useful signal to guide architecture design choices*.
 
 Cos'e' model distillation?
 
@@ -18,45 +18,35 @@ OpenAI ViT-B/16 CLIP
 
 
 ---------------------
-# Mobile CLIP
-## In a nutshell
-### Goal
+# Mobile CLIP 
+### *Fast Image-Text Models through Multi-Modal Reinforced Training*
+## 1. In a nutshell
+### 1.1 Goal
 - design a new family of aligned image-text encoders suitable for mobile devices.
-### Needs
-1. Tradeoff beween runtime performance and accuracy of different architectures.
+### 1.2 Challenges (to solve this problem)
+1. **Tradeoff beween runtime performance and accuracy of different architectures.**
 	- large scale training of CLIP models is computationally expensive, so rapid devop and exploration of efficient architecture design is hard
 	- standard multi-model contrastive learning [47] at small-scale results in poor accuracies, which doesn't provide a useful signal to guide architecture design choices
-2. Reduced capacity of smaller architectures leads to subpar accuracy; can be improved with a better training method
-### Overview - What they did 
-A novel training approach based on the dataset reinforcement method [14] :
+2. **Reduced capacity of smaller architectures leads to subpar accuracy; can be improved with a better training method.** (Missing reference, probably CLIP paper [47])
+### 1.3 Overview - What they did 
+A novel training approach based on the **dataset reinforcement method** [14] :
 1. reinforce the dataset once with additional information
 2. use the reinforced dataset several times for experimentation
-Results in improved accuracy wrt original dataset.
+results in improved accuracy wrt original dataset.
 
-Propose:
-- multi-model variant of dataset reinforcement for training efficient CLIP models.
+#### Propose:
+1. **multi-model variant of dataset reinforcement for training efficient CLIP models.**
 	- reinforced dataset
 	- training architecture
-- model
-	- text encoder: *Text-RepMixer*: convolutional token mixer that decouples train-time and inference=time architectures.
+1. **model design**
+	- text encoder: *Text-RepMixer*: convolutional token mixer that decouples train-time and inference-time architectures.
 	- image encoder: oved hybrid vision transformer called MCi based on the recent FastViT
-## In detail
-### Dataset
-Reinforce [14] the image-text DataComp [18] adding sysnthetic captions and embedding from a strong ensemble of pretrained CLIP models (From table 12):
-- teacher 1: `openai-ViT-L-14`
-- teacher 2: `datacomp_xl_s13b_b90k-ViT-L-14`
+  	
+	**Figure 1: Text-RepMixer**
 
-Two variants of the datasets:
-- DataCompDR-12M
-- DataCompDR-1B
-Shows significant learning efficiency improvement.
-
-We introduce two variants of our reinforced datasets: DataCompDR-12M and DataCompDR-1B. Using Data- CompDR, we demonstrate 10x-1000x learning efficiency in comparison to DataComp.
-
-Our proposed reinforced multi-modal dataset also benefits from synthetically generated captions, which we show are crucial for improved learning efficiency.
-
-
-### Training Architecture: Multi-modal reinforced training
+	![Text-RepMixer](./images/Text-RepMixer.png)
+## 2. In detail
+#### Training Architecture: Multi-modal reinforced training
 We introduce multi-modal reinforced training, a novel training strategy that incorporates knowledge transfer from a pre-trained image captioning model and an ensemble of strong CLIP models to improve learning efficiency.
 
 Our proposed multi-modal reinforced training also includes cross-modal affinity mimicking [68 ]. Further, we extend uni- modal model ensembling [33, 46] to multimodal setup, and store targets obtained from an ensemble of CLIP models.
@@ -70,8 +60,24 @@ training leverages knowledge transfer
 Two main components: 
 1. leveraging the knowledge of an image captioning model via synthetic captions
 2. knowledge distillation of image-text alignments from an ensemble of strong pretrained CLIP models. We follow the dataset reinforcement strategy of [ 14] and store the additional knowledge (synthetic captions and teacher embeddings) in the dataset (see Fig. 3)
+### 2.1 Reinforced Training
+#### 2.1.1 Dataset Reinforcement
 
-#### Dataset Reinforcement
+Reinforce [14] the image-text DataComp [18] adding sysnthetic captions and embedding from a strong ensemble of pretrained CLIP models (From table 12):
+- teacher 1: `openai-ViT-L-14`
+- teacher 2: `datacomp_xl_s13b_b90k-ViT-L-14`
+
+"We picked the ensemble of two ViT-L-14-based CLIP models as the teacher model (highlighted in blue) in our dataset reinforcement process." - **See table 14**
+
+Two variants of the datasets:
+- DataCompDR-12M
+- DataCompDR-1B
+Shows significant learning efficiency improvement.
+
+We introduce two variants of our reinforced datasets: DataCompDR-12M and DataCompDR-1B. Using Data- CompDR, we demonstrate 10x-1000x learning efficiency in comparison to DataComp.
+
+Our proposed reinforced multi-modal dataset also benefits from synthetically generated captions, which we show are crucial for improved learning efficiency.
+
 ##### Synthetic captions - Aka Caption Augmentation
 Motivation: image-text datasets used to train CLIP models are mostly sourced from the web, which is noisy. DataComp [18] and data filtering networks [16] improved the quality, but captions may not be descriptive enoiugh.
 
@@ -93,7 +99,8 @@ We compute the feature embeddings of these models for augmented images $\hat{x}^
 
 ##### Reinforced Dataset
 We store the image augmentation parameters a (i,j) , synthetic captions $x^{(i,s)}_{syn}$ , feature embeddings  $\psi^{(i,j,k)}_{img}$ , $\psi^{(i,s,k)}_{syn}$ and $\psi^{(i,k)}_{txt}$ of the CLIP teachers as additional knowledge in the dataset along with the original image $x^{(i)}_{img}$ and caption $x^{(i)}_{txt}$ (see Fig. 3c).
-#### Training
+
+#### 2.1.2 Training
 ##### Loss Function
 take a look at the paper, too long to copy it here now.
 ##### Efficient Training
@@ -105,14 +112,15 @@ Using this data we construct two data batches:
 and compute our trainig loss separately on both. The final loss is:
 $$\sum_{\mathcal{B} \in \{\mathcal{B}_{real}, \mathcal{B}_{syn}\}} \mathcal{L}_{Total}(\mathcal{B})$$
 Note that we can compute the total loss after a forward pass of the student model without any extra teacher related computations since the teacher embeddings required to compute the distillation loss are readily available as part of the dataset.
-### Model Architecture
+
+### 2.2 Model Architecture
 Using DataCompDR a new family of mobile-friendly aligned image-text encoders called MobileCLIP was developed, with a better latency-accuracy tradeoff compared to the previous works.
 
 We design a new family of mobile-friendly CLIP models, MobileCLIP. Variants of MobileCLIP use hybrid CNN- transformer architectures with structural reparametrization in image and text encoders to reduce the size and latency. • We introduce multi-modal reinforced training, a novel training strategy that incorporates knowledge transfer from a pre-trained image captioning model and an ensemble of strong CLIP models to improve learning efficiency.
 
 e introduce an improved convolution-transformer hybrid architecture for both vision and text modalities, that improve over recent state-of-the-art like [ 22, 38 , 44 , 53 ]. 
 
-#### Text Encoder
+#### 2.2.1 Text Encoder
 - Classic CLIP is paired the vision transformer with a classical transformer with self-attention layers for text encoding; this works well but it's not efficient
 - Recent work [67] showed that convolutions can be as effective for text encoding
 - We found that purely convolutional architectures underperform their transformer counterparts
@@ -120,7 +128,7 @@ e introduce an improved convolution-transformer hybrid architecture for both vis
 - Inspured by reparametrizable convolutional token mixing (RepMixer, introduced in [62]). More in the paper and Appendix F. (It's probably quite complex lol)
 
 This encoder is smaller, faster and has similar performance as the base text encoder paired with ViT-S/16.
-#### Image Encoder
+#### 2.2.2 Image Encoder
 For Mobile-CLIP we introduce an improved hybrid vision transformer called MCi based on the recent FastViT [62].
 To improve parameter efficiency we lower the expansion ration to 3.0 and increase the depth of the architecture. More in Appendix A.
 
