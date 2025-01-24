@@ -1,17 +1,17 @@
 
 ## Maybe useful citations
-
+[3] PruMer: Pruning and Merging tokens in ViLT to reduce training complexity mantaining high accuracy.
 [12]? Transformers for recognition at scale
 [68] cross model affinity mimicking
 [33,46] unimodal model ensembilnd; multimodal setup > utile per capire bene come hanno fatto l'ensemble
 [74] IMPORTANTE: CoCa, il modello usato per fare le caption sintetiche
-[62] fastvit e' da vedere come funziona
+[62] fastvit e' da vedere come funziona, FATTO
 [61] forse dare uno sguardo
 [18] (scaricato) Datacomp: In search of the next generation of multimodal datasets -- il dataset usato come base per creare il loro dataset rinforzato
 [14] Reinforce Data
 [47] (scaricato) **CLIP paper** Learning Transferable Visual Models From Natural Language Supervision -- standard multi-modal contrastive learning -- usato come esempio negativo: *at small-scale results in poor accuracies, which do not provide a useful signal to guide architecture design choices*.
 
-Cos'e' model distillation?
+Cos'e' model distillation? Tecnica di transfer learning, ci sono vari modi per farlo, qui hanno fatto un dataset reinforcement salvando tra le cose anche gli embeddings dell'ensembling di strong CLIP, e poi hanno trainato dei modelli più piccoli cercando di riprodurre gli embeddings salvati per ogni sample.
 
 [[xopp/2311.17049_mobile_clip.pdf|2311.17049_mobile_clip]]
 OpenAI ViT-B/16 CLIP
@@ -37,7 +37,7 @@ results in improved accuracy wrt original dataset.
 #### Propose:
 1. **multi-model variant of dataset reinforcement for training efficient CLIP models.**
 	- reinforced dataset
-	- training architecture
+	- training architecture, for training they mean...
 1. **model design**
 	- text encoder: *Text-RepMixer*: convolutional token mixer that decouples train-time and inference-time architectures.
 	- image encoder: oved hybrid vision transformer called MCi based on the recent FastViT [62]
@@ -45,6 +45,18 @@ results in improved accuracy wrt original dataset.
 	**Figure 1: Text-RepMixer**
 
 	![Text-RepMixer](./images/Text-RepMixer.png)
+
+### 1.4 What they achieve
+Citing the paper abstract...
+
+*Our MobileCLIP-S2 variant is **2.3× faster while more accurate** compared to previous best CLIP model based on ViT-B/16.*
+
+*We further demonstrate the effectiveness of our multi-modal reinforced training by training a CLIP model based on ViT-B/16 image backbone and achieving **+2.9% average performance improvement on 38 evaluation benchmarks compared to the previous best.** Moreover, we show that the proposed approach achieves **10×-1000× improved learning efficiency** when **compared with non-reinforced** CLIP training.*
+
+So:
+1. better avg. accuracy on 38 benchmarks
+2. improved learning efficency
+
 ## 2. In detail
 #### Training Architecture: Multi-modal reinforced training
 We introduce multi-modal reinforced training, a novel training strategy that incorporates knowledge transfer from a pre-trained image captioning model and an ensemble of strong CLIP models to improve learning efficiency.
@@ -128,11 +140,20 @@ Variants of MobileCLIP use hybrid CNN/transformer architectures with **structura
 
 *"We also introduced an improved convolution-transformer hybrid architecture for both vision and text modalities, that improve over recent state-of-the-art like [ 22, 38 , 44 , 53 ]."*
 
-#### 2.2.1 Text Encoder
+#### 2.2.1 Text Encoder | Text-RepMixer
 In classic CLIP is paired the vision transformer with a classical transformer with self-attention layers for text encoding; this works well but it's not efficient.
 - Recent work [67] showed that **convolutions can be as effective for text encoding** but we found that purely convolutional architectures underperform their transformer counterparts.
 - We introduce a **hybrid text encoder(Conv/Transf) which makes use of 1-D convolutions and self-attention layers**: *Text-RepMixer* which decouples train-time and inference-time architectures.
 - Inspured by reparametrizable convolutional token mixing (RepMixer, introduced in [62]). More in the paper and Appendix F.
+
+#### Text-RepMixer vs RepMixer
+*Text-RepMixer*
+
+![Text-RepMixer](./images/Text-RepMixer.png) 
+
+*RepMixer*
+
+![RepMixer](./images/RepMixer.png)
 
 **This encoder is smaller, faster and has similar performance as the base text encoder paired with ViT-S/16.**
 
@@ -140,14 +161,67 @@ In classic CLIP is paired the vision transformer with a classical transformer wi
 1. Ablation on the convolutional text encoder with 6-layers, 11 size kernel was the best tradeoff
 2. Use depth-wise 2D convolutional layers(for efficency)
 3. Reshaping of the 3d input tensor in to the *BC1S* standard
-4. "The FFN layers enable interactions between token’s channel dimensions. Since the convolution layer is 2D, we simply reuse the reparameterization process described in [62]"
+4. "The FFN layers enable interactions between token's channel dimensions. Since the convolution layer is 2D, we simply reuse the reparameterization process described in [62]"
 
-#### 2.2.2 Image Encoder
+#### 2.2.2 Image Encoder | MCi(i = 0,1,2)
 For Mobile-CLIP we introduce an improved hybrid vision transformer called MCi based on the recent FastViT [62].
 To improve parameter efficiency we lower the expansion ration to 3.0 and increase the depth of the architecture. More in Appendix A.
 
-##### Further Improvements
-The optimizations introduced in [3 , 68 ] can be used to further improve efficiency of our models.
+---
+##### FastVit
+FastViT is a hybrid transformer and has **4 distinct stages** which operate at different scales, plus a stem head for processing raw embeddings of the input.
+
+The main introductions were:
+1. use of RepMixer block to remove skip connections
+2. use of linear train-time overparameterization to improve accuracy
+3. use of large convolutional kernels to substitute self-attention layers in early stages
+   
+The first 3 are the same stacked on top of each other, with no attention mechanism but RepMixer as token mixing component which is faster and emulates the behavior of a classic ViT.
+While in the forth is done the CPE (which will be overparametrize in the training) and there is the attention mechanism.
+
+**CPE:** *Conditional Positional Encoding* which instead of relying on fixed positional vectors, CPEs adjust the positional encoding vectors in response to the specific context of the input, enabling more flexible and context-aware representations.
+
+**RepMixer:** Is a **convolutional mixing**(not with self attention like classical token mixing) that differentiate between training and inference time by doing:
+- *Training*: a simple DepthWise Convolution  with BN and skip connection
+- *Inference*: they leave skip connection and everything is represented just with a DepthWise Convolution which incorporate the previous skip. This is called **structural reparameterization**
+
+![RepMixerFastVit](./images/FastVitRepMixer.png) ![RepMixer](./images/RepMixer.png)
+
+*Stage 1-2-3*
+
+![Stage](./images/Stage.png)
+
+*Stage 4*
+
+![Stage4](./images/Stage4.png)
+
+*ConvFFN*
+
+![ConvFFN](./images/ConvFFN.png)
+
+--- 
+#### Further Improvements
+*"The optimizations introduced in [3 , 68 ] can be used to further improve efficiency of our models."*
+
+- [3] PuMer (tokens pruning and merging): here is introduced a method for pruning and merging tokens inside a (pre-trained) ViLT, improving model inference speed and reducing memory footprint.  
+TIP stands for *text-informed pruner* while MAM stands for *modality-aware merger*.
+
+	**TIP:** prune image tokens that have low correlation with the accompanying text. This is done using the scores produced by the attention modules already present in the net, thanks to this, **there is no parameter learning involved in the process.**
+
+	**MAM:** merge image tokens that have meaning but are redundant (this process is done after pruning), this is done using the same principle as TIP and the formula used is just the dot product between the similarity scores:
+		
+	*"Since the self-attention in a VL model layer already has computed keys and values for each token to measure similarity, following Bolya et al. (2022), we compute the similarity as the dot product 
+	$S^{t1t2} =  K^{t1} K^{t2}$
+	between the keys of each token vector X i . We keep the rest non-top-r ' to- kens in O rest and unmerged tokens in E rest ."* 
+
+	previous approaches:
+    - *DynamicViT:* token pruning through a MLP net specialized
+    - *ToMe:* token merging, after the attention module, they took the Key values of each token and do dot product similarity. Then through an iterative process, they merge tokens patches that are most similar, keeping an *r* max number.(no parameter learning)
+    - *Smaller Resolution:* We downsample the input image to smaller resolutions and finetune the VL models. Using smaller input images directly reduces the computation of VL models.
+
+- [68] TinyClip: 
+	- We propose a new cross-modal distillation approach to unleash the capacity of small CLIP models, is a distillation loss together with the CLIP contrastive
+	![TinyClip](./images/TinyClip.png)
 #### 2.2.3 Architectural design techniques
 
 ##### Structural Reparametrization
@@ -160,6 +234,20 @@ The optimizations introduced in [3 , 68 ] can be used to further improve efficie
 ##### Convolutional Token Mixing
 62. TODO
 
-##### RepMixer
+## 3 Test and Results
 
-![RepMixer](./images/RepMixer.png)
+### 3.1 Results
+#### 3.1.1 Latency
+![Latency](./images/LatencyMobileClip.png)
+#### 3.1.2 Accuracy
+![Accuracy](./images/AccuracyMobileClip.png)
+### 3.2 Test
+
+![DataComp12-train](./images/TableTrainingTimes.png)
+
+On *DataCompDR-12M*:
+
+- **With the stored embeddings ==> 4.1 hours**
+- **Without the stored embeddings ==> 1.3 hours**
+
+##### RepMixer
