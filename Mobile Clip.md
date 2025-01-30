@@ -29,9 +29,9 @@ OpenAI ViT-B/16 CLIP
 	- standard multi-model contrastive learning [47] at small-scale results in poor accuracies, which doesn't provide a useful signal to guide architecture design choices
 2. **Reduced capacity of smaller architectures leads to subpar accuracy; can be improved with a better training method.** (Missing reference, probably CLIP paper [47])
 ### 1.3 Overview - What they did 
-A novel training approach based on the **dataset reinforcement method** [14] :
+A novel training approach based on the **dataset reinforcement method** [[Reinforce Data]][14] :
 1. reinforce the dataset once with additional information
-2. use the reinforced dataset several times for experimentation
+2. use the reinforced dataset several times for experimentation 
 results in improved accuracy wrt original dataset.
 
 #### Propose:
@@ -40,7 +40,7 @@ results in improved accuracy wrt original dataset.
 	- training architecture, for training they mean...
 1. **model design**
 	- text encoder: *Text-RepMixer*: convolutional token mixer that decouples train-time and inference-time architectures.
-	- image encoder: oved hybrid vision transformer called MCi based on the recent FastViT
+	- image encoder: oved hybrid vision transformer called MCi based on the recent FastViT [62]
   	
 	**Figure 1: Text-RepMixer**
 
