@@ -220,19 +220,28 @@ TIP stands for *text-informed pruner* while MAM stands for *modality-aware merge
     - *Smaller Resolution:* We downsample the input image to smaller resolutions and finetune the VL models. Using smaller input images directly reduces the computation of VL models.
 
 - [68] TinyClip: 
-	- We propose a new cross-modal distillation approach to unleash the capacity of small CLIP models, is a distillation loss together with the CLIP contrastive
+	- We propose a new cross-modal distillation approach to unleash the capacity of small CLIP models, is a distillation loss together with the CLIP contrastive loss.
+  
 	![TinyClip](./images/TinyClip.png)
 #### 2.2.3 Architectural design techniques
 
 ##### Structural Reparametrization
-9. TODO
-10. TODO
-11. TODO
-21. TODO
-61. TODO
+This technique consist to have different architectures between train and inference time, removing all the skip connections and having a much simpler structure at inference time permits to keep the knowledge from the specific block while reducing notably the latency during inference.
+
+This is done in this specific case collapsing every skip connection and every other operations in a single depth wise convolutional block.
+
+*From RepMobile*
+
+![image-SR](./images/SR_1.png)
+
+![fromBNtoConv](./images/SR_2.png)
+
+![SR_3](./images/SR_3.png)
 
 ##### Convolutional Token Mixing
-62. TODO
+Inside a transformer, instead of using a classical self attention mechanism during the token mixing part, it has been shown that similar results could be achieved especially in the first blocks of the transformer using the convolutional counter part but speeding up latency and training wise.
+
+TextRep-Mixer is an example of that.
 
 ## 3 Test and Results
 
@@ -249,5 +258,3 @@ On *DataCompDR-12M*:
 
 - **With the stored embeddings ==> 4.1 hours**
 - **Without the stored embeddings ==> 1.3 hours**
-
-##### RepMixer
