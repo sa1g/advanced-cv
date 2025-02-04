@@ -12,15 +12,55 @@
 		1. https://arxiv.org/abs/2405.11919 -> idea di ettore, dataset caption intelligent reduction wrt estimated quality wrt generated captions -> objective to reduce the training time and potentially (small gain) in accuracy.
 		2. PruMer (towards the dataset creation)-> 
 			1. velocizzare la creazione del dataset rinforzato
-	2. loss
-		1. implementare tinyvit -> obiettivo di ridurre ancora piu' il modello -> less latency, less training time
+	2. loss 
+		1. implementare tinyClip -> obiettivo di ridurre ancora piu' il modello -> less latency, less training time
 	3. inference
 		1. prumer (towards model efficiency)
 			1. rendere il modello piu' veloce (forse occupa meno vram? da vedere)
 	4. architecture (?)
 		1. Sigmoid Self-Attention -> NotebookLM salvaci tu
 
+## 2 Possibili Migliorie
 
+### 2.1 Dataset Reinforcement
+
+### 2.2 TinyCLIP - Loss
+**Affinity Mimicking**
+This is the technique (introduced by a loss) that mixed the embeddings from the teacher and the student model, using the classic contrastive loss between both the Text2Image and viceversa among the teacher and the student
+
+$$
+L_{distill} = L_{I2T} + L_{T2I}\\
+L_{I2T} = CE(A^{s}_{I2T}, A^{t}_{I2T})\\
+A_{I2T} = exp(I_{i} * T_{j}/ \tau)/ \sum_{k \epsilon \Beta}exp(I_{i} * T_{k}/ \tau)
+$$
+
+**Weight Inheritance - Manual and Automatic**
+*"To capture the importance of weights in a fine-grained level, we introduce two mask variables m head , m int ∈ {0, 1} to identify the redundant attention heads in MHA and neurons in FFN respectively, while keeping the important ones. These two kinds of masks are imposed on the activation of attention heads and the intermediate layer of FFN"*
+
+1. $m_{head}^{h}$ *with* $h = (1 .. N_{H})$
+2. $m_{int}$ *one for each FFN*
+   
+*"Moreover, to further learn the importance of embedding dimensions in transformer, we introduce an additional mask m embed ∈ {0, 1}. This mask is shared across all layers because each dimension in the hidden representation is connected to the corresponding dimension in the subsequent layer through a residual connection."*
+
+1. $m_{embed} \epsilon [0,1]$ 
+
+This three masks are learnt by the model, introducing them in the Loss in this way:
+
+$$
+L = L_{distill} + L_{sparsity}\\
+L_{sparsity} = \lambda * (p - q) + \beta * (p - q)^2
+$$
+
+*"p is the overall compression rate of learnable masks for the model, including image encoder and text encoder"*
+Very important is the *p* parameter which has to be equal to *q*, this because q is set manually to control the compression ratio :
+
+
+![p_tinyClip](./images/p_tinyClip.png)
+
+### 2.3 Progressive Multi-Stage Distillation
+*"When attempting to achieve a high target sparsity, i.e.,>70%, compressing the model in a single stage can lead toa significant reduction in accuracy and even result in con-vergence failure. This is due to the fact that most weights ofthe large model are directly discarded, including those thatare important for ensuring model quality and convergence.As a solution, we propose a multi-stage progressive distil-lation method to achieve a high compression rate withoutseriously sacrificing accuracy. In each stage, we use a mod-est degree of compression, e.g., 25%, to avoid large loss ofperformance and make training stable."*
+
+Just using the two precedent methods gradually, maybe changing also the percentage of compression. 
 
 - Reinforce Data
 	- Come hanno fatto il dataset reinforcement? Con che logica?
