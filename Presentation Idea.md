@@ -1,0 +1,32 @@
+- intro
+	- we want an efficient and performing Clip that can run on edge devices i.e. smartphones
+	- this presentation will be DENSE
+	- say that they created a distilled clip model that is **faster** and more **training efficient**, by using an ensemble teacher and a reinforced dataset.
+- Ensemble Teacher
+	- mostly and intro to say which models
+	- loss
+- Reinforced Dataset
+	- which dataset
+	- synthetic captions
+	- image augmentation
+	- -> leads to the reinforced dataset
+- model architecture
+	- objective: reduce size and latency
+	- text encoder (**text-repmixer**)
+		- uses 1D convolutions and self-attention layers
+		- spend some time to explain it
+			- structural reparametrizatoin
+			- convolutional token mixing
+			- 
+		- *detail in appendix F*
+	- image encoder (**MCi**)
+		- based on FastViT
+		- *detail in appendix A*
+- results
+	- hardware requirements
+	- latency
+	- accuracy
+	- benchmarks
+- further improvements
+	- PuMer
+	- tiny vit
