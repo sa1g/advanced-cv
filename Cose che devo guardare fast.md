@@ -25,17 +25,20 @@
 ### 2.1 Dataset Reinforcement
 
 ### 2.2 TinyCLIP - Loss
-**Affinity Mimicking**
+
+*TinyClip contributions*
+
+**2.2.1 Affinity Mimicking**
 This is the technique (introduced by a loss) that mixed the embeddings from the teacher and the student model, using the classic contrastive loss between both the Text2Image and viceversa among the teacher and the student
 
 $$
 L_{distill} = L_{I2T} + L_{T2I}\\
 L_{I2T} = CE(A^{s}_{I2T}, A^{t}_{I2T})\\
-A_{I2T} = exp(I_{i} * T_{j}/ \tau)/ \sum_{k \epsilon \Beta}exp(I_{i} * T_{k}/ \tau)
+A_{I2T}(i,j) = \frac{exp(I_{i} * T_{j}/ \tau)} {\sum_{k \epsilon \Beta}exp(I_{i} * T_{k}\tau)}
 $$
 
-**Weight Inheritance - Manual and Automatic**
-*"To capture the importance of weights in a fine-grained level, we introduce two mask variables m head , m int ∈ {0, 1} to identify the redundant attention heads in MHA and neurons in FFN respectively, while keeping the important ones. These two kinds of masks are imposed on the activation of attention heads and the intermediate layer of FFN"*
+**2.2.2 Weight Inheritance - Manual and Automatic**
+*"To capture the importance of weights in a fine-grained level, we introduce two mask variables $m_{head}$ , $m_{int}$ ∈ {0, 1} to identify the redundant attention heads in MHA and neurons in FFN respectively, while keeping the important ones. These two kinds of masks are imposed on the activation of attention heads and the intermediate layer of FFN"*
 
 1. $m_{head}^{h}$ *with* $h = (1 .. N_{H})$
 2. $m_{int}$ *one for each FFN*
@@ -57,10 +60,71 @@ Very important is the *p* parameter which has to be equal to *q*, this because q
 
 ![p_tinyClip](./images/p_tinyClip.png)
 
-### 2.3 Progressive Multi-Stage Distillation
+**2.2.3 Progressive Multi-Stage Distillation**
 *"When attempting to achieve a high target sparsity, i.e.,>70%, compressing the model in a single stage can lead toa significant reduction in accuracy and even result in con-vergence failure. This is due to the fact that most weights ofthe large model are directly discarded, including those thatare important for ensuring model quality and convergence.As a solution, we propose a multi-stage progressive distil-lation method to achieve a high compression rate withoutseriously sacrificing accuracy. In each stage, we use a mod-est degree of compression, e.g., 25%, to avoid large loss ofperformance and make training stable."*
 
 Just using the two precedent methods gradually, maybe changing also the percentage of compression. 
+
+### 2.2 Loss integration
+
+We know that std. CLIP loss is:
+
+$$
+\mathcal{L} = -\frac{1}{2N} \sum_{i=1}^{N} \Bigg[
+\log \frac{\exp\bigl(\mathrm{sim}(x_{i}, y_{i}) / \tau\bigr)}
+{\sum_{j=1}^N \exp\bigl(\mathrm{sim}(x_{i}, y_{j}) / \tau\bigr)}
+\;+\;
+\log \frac{\exp\bigl(\mathrm{sim}(x_{i}, y_{i}) / \tau\bigr)}
+{\sum_{j=1}^N \exp\bigl(\mathrm{sim}(x_{j}, y_{i}) / \tau\bigr)}
+\Bigg],
+
+$$
+
+Where is in the first contrastive loss from text to image and the second is viceversa
+
+MobileClip loss is:
+
+$$
+
+\mathcal{L}_{\text{Total}}(\mathcal{B}) 
+= (1 - \lambda)\,\mathcal{L}_{\text{CLIP}}(\mathcal{B})
+  + \lambda\,\mathcal{L}_{\text{Distill}}(\mathcal{B}),\\
+
+\mathcal{L}_{\text{Distill}}(\mathcal{B})
+= \tfrac{1}{2}\,\mathcal{L}_{\text{I2T Distill}}(\mathcal{B})
+  + \tfrac{1}{2}\,\mathcal{L}_{\text{T2I Distill}}(\mathcal{B}),\\
+
+\mathcal{L}_{\text{I2T Distill}}(\mathcal{B})
+= \frac{1}{bK}
+  \sum_{k=1}^{K}
+  \mathrm{KL}\Bigl(
+      S_{\tau_k}\bigl(\Psi_{\mathrm{img}}^{(k)}, \Psi_{\mathrm{txt}}^{(k)}\bigr)
+      \,\Big\|\,
+      S_{\hat{\tau}}\bigl(\Phi_{\mathrm{img}}, \Phi_{\mathrm{txt}}\bigr)
+  \Bigr).
+$$
+
+Which has the std. CLIP loss and the Distill loss parametrized by $\lambda$ which empowers the stored embeddings a lot (0.7-1.0), as shown in the figure below
+
+![lambdaMobile](./images/lambda_mobileClip.png)
+
+So two plausible Losses might be:
+
+$$
+\mathcal{L}_{\text{Total}}(\mathcal{B}) 
+= (1 - \lambda)\,\mathcal{L}_{\text{CLIP}}(\mathcal{B})
+  + \lambda((1 - \alpha)\mathcal{L}_{\text{Distill}}(\mathcal{B}) + \alpha\mathcal{L}_{\text{Sparsity}}(\mathcal{B}))   
+$$
+
+where:
+- $\lambda$ balanced as usual the std. CLIP loss and the distillation one
+- $\alpha$ instead balance the contribution of distill and sparsity
+- $\mathcal{L}_{\text{Distill}}$ could be the MobileClip or the TinyClip loss, in both cases using the stored embeddings
+- $\mathcal{L}_{\text{Sparsity}}$ empowers the compression of the transformer architecture, eventually applied only to the self-attention layers in case of the hybrid transformer encoder and to the ConvFFN 
+
+---
+
+---
 
 - Reinforce Data
 	- Come hanno fatto il dataset reinforcement? Con che logica?
