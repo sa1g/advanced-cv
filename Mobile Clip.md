@@ -1,15 +1,15 @@
 
 ## Maybe useful citations
-[3] PruMer: Pruning and Merging tokens in ViLT to reduce training complexity mantaining high accuracy.
-[12]? Transformers for recognition at scale
-[68] cross model affinity mimicking
-[33,46] unimodal model ensembilnd; multimodal setup > utile per capire bene come hanno fatto l'ensemble
-[74] IMPORTANTE: CoCa, il modello usato per fare le caption sintetiche
-[62] fastvit e' da vedere come funziona, FATTO
-[61] forse dare uno sguardo
-[18] (scaricato) Datacomp: In search of the next generation of multimodal datasets -- il dataset usato come base per creare il loro dataset rinforzato
-[14] Reinforce Data
-[47] (scaricato) **CLIP paper** Learning Transferable Visual Models From Natural Language Supervision -- standard multi-modal contrastive learning -- usato come esempio negativo: *at small-scale results in poor accuracies, which do not provide a useful signal to guide architecture design choices*.
+- [3] PruMer: Pruning and Merging tokens in ViLT to reduce training complexity mantaining high accuracy.
+- [12]? Transformers for recognition at scale
+- [68] cross model affinity mimicking
+- [33,46] unimodal model ensembilnd; multimodal setup > utile per capire bene come hanno fatto l'ensemble
+- [74] IMPORTANTE: CoCa, il modello usato per fare le caption sintetiche
+- [62] fastvit e' da vedere come funziona, FATTO
+- [61] forse dare uno sguardo
+- [18] (scaricato) Datacomp: In search of the next generation of multimodal datasets -- il dataset usato come base per creare il loro dataset rinforzato
+- [14] Reinforce Data
+- [47] (scaricato) **CLIP paper** Learning Transferable Visual Models From Natural Language Supervision -- standard multi-modal contrastive learning -- usato come esempio negativo: *at small-scale results in poor accuracies, which do not provide a useful signal to guide architecture design choices*.
 
 Cos'e' model distillation? Tecnica di transfer learning, ci sono vari modi per farlo, qui hanno fatto un dataset reinforcement salvando tra le cose anche gli embeddings dell'ensembling di strong CLIP, e poi hanno trainato dei modelli più piccoli cercando di riprodurre gli embeddings salvati per ogni sample.
 
@@ -22,7 +22,7 @@ OpenAI ViT-B/16 CLIP
 ### *Fast Image-Text Models through Multi-Modal Reinforced Training*
 ## 1. In a nutshell
 ### 1.1 Goal
-- design a new family of aligned image-text encoders suitable for mobile devices.
+- design a new family of aligned image-text encoders suitable for mobile devices.*
 ### 1.2 Challenges (to solve this problem)
 1. **Tradeoff beween runtime performance and accuracy of different architectures.**
 	- large scale training of CLIP models is computationally expensive, so rapid devop and exploration of efficient architecture design is hard
@@ -124,7 +124,7 @@ Using coca_ViT-L-14 in OpenCLIP and strong random image augmentation
 - DataCompDR-12M: 30
 - DataCompDR-1B: 10
 ##### Ensemble Teacher
-Model ensembling is used to create a stronger model froma set of indipendently trained ones [33,46]. We extend this technique to multi-model setup and use an ensemble of *K* CLIP models as a strong teacher.
+Model ensembling is used to create a stronger model from a set of indipendently trained ones [33,46]. We extend this technique to multi-model setup and use an ensemble of *K* CLIP models as a strong teacher.
 
 We compute the feature embeddings of these models for augmented images $\hat{x}^{(i,j)}_{img}$ and synthetic captions $x^{(i,s)}_{syn}$ obtaining $d_k$-dimensional vectors $\psi^{(i,j,k)}_{img}$ and $\psi^{(i,s,k)}_{syn}$ for the $k_{th}$ teacher model. We also compute the teacher embeddings $\psi^{(i,k)}_{txt}$ of the ground-truth captions $x^{(i)}_{txt}$ (see Fig. 3b).
 
