@@ -167,7 +167,7 @@ Inside the CLIP ViT, not all the patches identify for relevant information, so t
 
 To do this, they apply a series of pruned tokens to the model and evaluate:
 
-1. **Label-Driven Ranking Score** *"The pruned tokens T i are scored based on CLIP’s zero-shot posterior probabil- ity of assigning the pruned sequence X T ¯ i to the ground- 33.2. Phase II: Predicting the Golden Ranking truth label $y_{gt}$"*
+1. **Label-Driven Ranking Score** *"The pruned tokens T i are scored based on CLIP’s zero-shot posterior probability of assigning the pruned sequence $\mathcal{T_i}$ to the ground 33.2. Phase II: Predicting the Golden Ranking truth label $y_{gt}$"*
 $$
 s(\mathcal{T_i}) = \mathcal{P(\mathcal{y_gt}|\mathcal{X_{\mathcal{T^{¯}_i}}})}
 $$
@@ -197,6 +197,10 @@ They now train a predictor to insert in the early layers of the ViT to prune a g
 Prompt tuning (aka need some training) to compensate the pruning done in Phase2.
 The prompt tuning is made by adding learnable prompts both at the beginning of the Visual encoder and Text encoder, where they are correlated by a linear transformation described by:
 $\mathcal{P_v^i = MP_t^i}$
+
+**2.4.4 Possible Integrations**
+1. Adding to the trained MobileClip -> to understand if is possible in the middle layers
+2. Loss integration in the sparsity loss -> during training, every n batches we prune some tokens and compute the scores. **What would be the upgrades?**
 
 ---
 
