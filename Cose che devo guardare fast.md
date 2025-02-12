@@ -25,16 +25,16 @@
 # 1 - MobileClip
 
 ## Objective
-Design a new family of aligned image-text encoders suitable for mobile devices.
+Design a new family of aligned image-text encoders suitable for **mobile devices**.
+They need to be small and performant, accuracy improvement is a bonus.
 
+Things to keep in mind:
 1. **Tradeoff between runtime performance and accuracy of different architectures.**
-	- Large scale training of CLIP is computationally expensive, so raid development and exploration of efficient architecture designs is hard. $\rightarrow$ better training efficiency
+	- Large scale training of CLIP is computationally expensive, so rapid development and exploration of efficient architecture designs is hard $\rightarrow$ better training efficiency
 	- Standard multi-model contrastive learning [47] at small-scale results in poor accuracies, which doesn't provide a useful signal to guide architecture design choices. 
 2. **Reduced capability of smaller models.**
 	- Smaller models have reduced capability to capture the complex relationships between images and text, which results in poor performance.
-	- Can be improved with a better traiing method.
-3. **Small and performant** $\rightarrow$ mobile devices
-4. **Accuracy improvement**
+	- Can be improved with a better training method.
 
 ## Proposed Solution (Summary)
 1. **Multi-model variant of dataset reinforcement for training efficient CLIP models.**
@@ -46,59 +46,63 @@ Design a new family of aligned image-text encoders suitable for mobile devices.
 	- Hybrid Image Encoder - MCi
 		- FastViT based
 
-We design a new family of mobile-friendly CLIP models, MobileCLIP. Variants of MobileCLIP use hybrid CNN-transformer architectures with structural reparametrization in image and text encoders to reduce the size and latency.
-- We introduce multi-modal reinforced training, a noveltraining strategy that incorporates knowledge transfer from a pre-trained image captioning model and an ensemble of strong CLIP models to improve learning efficiency.
-- We introduce two variants of our reinforced datasets:DataCompDR-12M and DataCompDR-1B. Using Data-CompDR, we demonstrate 10x-1000x learning efficiency in comparison to DataComp.
+A new family of mobile-friendly CLIP models, MobileCLIP, is proposed. They use hybrid CNN-transformer architectures with structural reparametrization in image and text encoders to **reduce the size and latency**.
+
+Introduced methods:
+- Multi-modal reinforced training, a novel training strategy that incorporates knowledge transfer from a pre-trained image captioning model and an ensemble of strong CLIP models to improve learning efficiency.
+- Two reinforced datasets	
 - MobileCLIP family obtains state-of-the-art latency-accuracy tradeoff on zero-shot tasks, including marking a new best ViT-B/16 based CLIP model.
 
 ## Data - Dataset Reinforcement
 TODO: ordinare
 
-1. Reinforce a dataset once with additiona information
+The idea is to:
+1. Reinforce a dataset once with additional information.
 2. Use the reinforced dataset several times for experimentation.
 
-For a given compute budget, traiing with the reinforced dataset results in improved accuracy compared to the original dataset.
 
-Based on DataComp, by addin synthetic caption adn embeddings from a strong ensemble of pretrained CLIP models.
-- DataCompDR-12M: rapid iteration on efficient model design
-- DataCompDR-1B: large-scale training performance
-
-
->> All of this makes the training process more efficient and the model more resilient to noise in the data.
->> Synthetic captions are crucial for improved learning efficiency.
->> Dataset Reinforcement Stratefy extended to the multi-modal setup of CLIP. Accuracy improvement without adding training-time computational overhead.
-
-- We store the additional knowledge (synthetic captions, teacher embeddings, image augmentation parameters, feature embeddings of the clip teachers, original image and caption) in the reinforced dataset.
-
-Reinforce [14] the image-text DataComp [18] adding sysnthetic captions and embedding from a strong ensemble of pretrained CLIP models (From table 12):
+Based on DataComp, by adding **synthetic caption** and embeddings from a **strong ensemble** of pretrained CLIP models **See table 14**, both based on `ViT-L-14`:
 - teacher 1: `openai-ViT-L-14`
 - teacher 2: `datacomp_xl_s13b_b90k-ViT-L-14`
 
-"We picked the ensemble of two ViT-L-14-based CLIP models as the teacher model (highlighted in blue) in our dataset reinforcement process." - **See table 14**
 
-Two variants of the datasets:
-- DataCompDR-12M
-- DataCompDR-1B
-Shows significant learning efficiency improvement.
+Generated datasets:
+- **DataCompDR-12M**: rapid iteration on efficient model design.
+- **DataCompDR-1B**: large-scale training performance.
 
-We introduce two variants of our reinforced datasets: DataCompDR-12M and DataCompDR-1B. Using Data- CompDR, we demonstrate 10x-1000x learning efficiency in comparison to DataComp.
+- Using Data-CompDR, we demonstrate 10x-1000x learning efficiency in comparison to DataComp.
+- For a given compute budget, training with the reinforced dataset results in improved accuracy compared to the original dataset.
+- This makes the training process more efficient and the model more resilient to noise in the data.
+- Synthetic captions are crucial for improved learning efficiency.
+- Dataset Reinforcement Stratefy extended to the multi-modal setup of CLIP. Accuracy improvement without adding training-time computational overhead.
 
-Our proposed reinforced multi-modal dataset also benefits from synthetically generated captions, which we show are crucial for improved learning efficiency.
+- Store the additional knowledge (synthetic captions, teacher embeddings, image augmentation parameters, feature embeddings of the clip teachers, original image and caption) in the reinforced dataset.
+
+
 
 ### Synthetic captions - Aka Caption Augmentation
-Motivation: image-text datasets used to train CLIP models are mostly sourced from the web, which is noisy. DataComp [18] and data filtering networks [16] improved the quality, but captions may not be descriptive enoiugh.
+#### Motivation
+Image-text datasets used to train CLIP models are mostly sourced from the web, which is noisy. DataComp [18] and data filtering networks [16] improved the quality, but captions may not be descriptive enough.
 
-In order to boost the visual descriptiveness of caption we use CoCa [74] model and generate multiple synthetic captions for each image. $\rightarrow$ real captions in comparison to synthetic captions are generally more specific but noisier.
+#### Idea
+Boost the visual descriptiveness of caption using CoCa [74] (`coca_ViT-L-14`) to generate multiple synthetic captions for each image $\rightarrow$ real captions wrt synthetic captions are generally more specific but noisier.
 
 ### Image Augmentation
-For each image $x_{img}^{(i)}$, we generate multiple augmented images $\hat{x}_{img}^{(i)}$ using a parmetrized augmentation function $\mathcal{A}$  
-$$\hat{x}_{img}^{(i,j)} = \mathcal{A}(x_{img}^{(i)}; a^{(i,j)})$$
-where $a^{(i,j)}$ are the augmentation parameters that are sufficient to reproduce $\hat{x}_{img}^{(i)}$ from $x_{img}^{(i)}$. 
-The number and different kind of augmentations are provided in Tabs 4a and 13. 
+For each image $x_{img}^{(i)}$, generate multiple augmented images $\hat{x}_{img}^{(i)}$ using a parmetrized augmentation function $\mathcal{A}$:
 
-Using coca_ViT-L-14 in OpenCLIP and strong random image augmentation (RRC + RA/RE) ( Random-Resize-Crop (RRC), RandomAugment [14] and RandomErase (RA/RE).)
-- DataCompDR-12M: 30
-- DataCompDR-1B: 10
+
+$$\hat{x}_{img}^{(i,j)} = \mathcal{A}(x_{img}^{(i)}; a^{(i,j)})$$
+
+
+where $a^{(i,j)}$ are the augmentation parameters that are sufficient to reproduce $\hat{x}_{img}^{(i)}$ from $x_{img}^{(i)}$. 
+The number and different kind of augmentations are provided in **Tab 4a and Tab 13**. 
+
+$\mathcal{A} is a strong random image augmentation (Random-Resize-Crop (RRC), RandAugment (RA), RangeAugment (only for the student while training)).
+
+TODO: where does this comes from? Probably it's the `#` of augmentations. 
+
+- `DataCompDR-12M`: $30$
+- `DataCompDR-1B`: $10$
 
 ### Reinforced Dataset
 We store the image augmentation parameters a (i,j) , synthetic captions $x^{(i,s)}_{syn}$ , feature embeddings  $\psi^{(i,j,k)}_{img}$ , $\psi^{(i,s,k)}_{syn}$ and $\psi^{(i,k)}_{txt}$ of the CLIP teachers as additional knowledge in the dataset along with the original image $x^{(i)}_{img}$ and caption $x^{(i)}_{txt}$ (see Fig. 3c).
@@ -107,15 +111,22 @@ We store the image augmentation parameters a (i,j) , synthetic captions $x^{(i,s
 ## Training - Multi-Model Reinforced Training
 Novel training strategy that incorporates knowledge transfer from a pre-trained image captioning model and an ensemble of strong CLIP models to improve learning efficiency.
 
-we introduce an improved convolution-transformer hybrid architecture for both vision
-and text modalities >> improve efficiency of our models.
-
 ### **Knowledge transfer**:
-	1. knowledge of an image captioning model via **synthetic captions**
-	2. knowledge distillation of image-text alignments from an ensemble of strong pretrained CLIP models **through the dataset reinforcement** strategy.
+1. knowledge of an image captioning model via **synthetic captions**
+2. knowledge distillation of image-text alignments from an ensemble of strong pretrained CLIP models **through the dataset reinforcement** strategy.
 
 ### Loss Function
-TODO: Loss function
+
+$$\mathcal{L}_{Total}(\mathcal{B}) = (1-\lambda) \mathcal{L}_{Distill}(\mathcal{B}) + \lambda \mathcal{L}_{Distill}(\mathcal{B})$$
+
+$$\mathcal{L}_{Distill}(\mathcal{B}) = \frac{1}{2} \mathcal{L}^{I2T}_{Distill}(\mathcal{B}) + \frac{1}{2}\mathcal{L}^{T2I}_{Distill}(\mathcal{B})$$
+$$\mathcal{L}_{Distill}^{I2T} = \frac{1}{bK} \sum_{k=1}^{K}KL(\mathcal{S}_{\tau_k}(\Psi^{(k)}_{img}, \Psi^{(k)}_{txt}) || \mathcal{S}_{\hat(\tau)}(\Phi_{img}, \Phi_{txt}))$$
+
+where:
+- $KL$ is the Kullback-Leibler divergence
+- $\tau$ is the temperature
+- $\lambda$ is a tradeoff parameter
+- $\mathcal{L}_{Distill}^{T2I}$ is computed by swalpping the text and imageembedding terms of $\mathcal{L}_{Distill}^{I2T}$
 
 ### Efficient Training
 For every sample, we read the image $x_{img}^{(i)}$ and the corresponding ground-truth caption $x^{(i)}_{txt}$ form the dataset.
@@ -135,24 +146,19 @@ We compute the feature embeddings of these models for augmented images $\hat{x}^
 
 
 ## Architecture
-Using DataCompDR a new family of mobile-friendly aligned image-text encoders called MobileCLIP was developed, with a better latency-accuracy tradeoff compared to the previous works.
-
 Variants of MobileCLIP use hybrid CNN/transformer architectures with **structural reparametrization in image and text encoders** to reduce the size and latency.  
 
-*"We also introduced an improved convolution-transformer hybrid architecture for both vision and text modalities, that improve over recent state-of-the-art like [ 22, 38 , 44 , 53 ]."*
 ### Hyrid Text Encoder - Text-RepMixer
-In classic CLIP is paired the vision transformer with a classical transformer with self-attention layers for text encoding; this works well but it's not efficient.
+In classic CLIP is paired the vision transformer with a classical transformer with self-attention layers for text encoding, this works well but it's not efficient.
 <!-- - Recent work [67] showed that **convolutions can be as effective for text encoding** but we found that purely convolutional architectures underperform their transformer counterparts. -->
-We introduce a **hybrid text encoder(Conv/Transf) which makes use of 1-D convolutions and self-attention layers**: *Text-RepMixer* which decouples train-time and inference-time architectures. Inspired by reparametrizable convolutional token mixing (RepMixer, introduced in [62]). More in the paper and Appendix F.
+We introduce a **hybrid text encoder(Conv/Transf) which makes use of 1-D convolutions and self-attention layers**: *Text-RepMixer* which decouples train-time and inference-time architectures. Inspired by reparametrizable convolutional token mixing (RepMixer, introduced in [62]). More in the paper and **Appendix F**.
 
-TL:DR replae convolution with self-attention. This encoder is smaller, faster and with similar performance as the text encoder of ViT-S/16.
-
-APPENDIX F
+**TL:DR** replae convolution with self-attention. This encoder is smaller, faster and with similar performance as the text encoder of ViT-S/16.
 
 #### Text-RepMixer vs RepMixer
 *Text-RepMixer*
 
-![Text-RepMixer](./images/	.png) 
+![Text-RepMixer](./images/Text-RepMixer.png) 
 
 *RepMixer*
 
@@ -168,7 +174,53 @@ RepMixer, a fully reparameterizable token mixer that uses structural reparameter
 
 - used to remove skip connections and linear overparametrization
 
-##### How are the parameters re-parametrized at inference time? 
+#### How does reparametrization works? 
+
+
+
+#### Hybrid Implementation
+TODO: where is this in the paper?
+1. Ablation on the convolutional text encoder with 6-layers, 11 size kernel was the best tradeoff
+2. Use depth-wise 2D convolutional layers(for efficency)
+3. Reshaping of the 3d input tensor in to the *BC1S* standard
+4. "The FFN layers enable interactions between token's channel dimensions. Since the convolution layer is 2D, we simply reuse the reparameterization process described in [62]"
+
+#### FastVit
+FastViT is a hybrid transformer and has **4 distinct stages** which operate at different scales, plus a stem head for processing raw embeddings of the input.
+
+The main introductions were:
+1. use of RepMixer block to remove skip connections
+2. use of linear train-time overparameterization to improve accuracy
+3. use of large convolutional kernels to substitute self-attention layers in early stages
+   
+The first 3 are the same stacked on top of each other, with no attention mechanism but RepMixer as token mixing component which is faster and emulates the behavior of a classic ViT.
+While in the forth is done the CPE (which will be overparametrize in the training) and there is the attention mechanism.
+
+**CPE:** *Conditional Positional Encoding* which instead of relying on fixed positional vectors, CPEs adjust the positional encoding vectors in response to the specific context of the input, enabling more flexible and context-aware representations.
+
+**RepMixer:** Is a **convolutional mixing**(not with self attention like classical token mixing) that differentiate between training and inference time by doing:
+- *Training*: a simple DepthWise Convolution  with BN and skip connection
+- *Inference*: they leave skip connection and everything is represented just with a DepthWise Convolution which incorporate the previous skip. This is called **structural reparameterization**
+
+![RepMixerFastVit](./images/FastVitRepMixer.png) ![RepMixer](./images/RepMixer.png)
+
+*Stage 1-2-3* $\rightarrow$ *Stage 4* $\rightarrow$ *ConvFFN*
+
+![Stage](./images/Stage.png) ![Stage4](./images/Stage4.png) ![ConvFFN](./images/ConvFFN.png)
+
+#### Structural Reparametrization
+This technique consist to have different architectures between train and inference time, removing all the skip connections and having a much simpler structure at inference time permits to keep the knowledge from the specific block while reducing notably the latency during inference.
+
+This is done in this specific case collapsing every skip connection and every other operations in a single depth wise convolutional block.
+
+*From RepMobile*
+
+![image-SR](./images/SR_1.png)
+
+![fromBNtoConv](./images/SR_2.png)
+
+![SR_3](./images/SR_3.png)
+
 NOTE: EXAMPLE WITH FASTVIT!
 
 The output of the RepMixer block during training is:
@@ -195,58 +247,6 @@ The output of the RepMixer block during **inference** is:
 $$y = \texttt{BN}(W_{rep}x + b_{rep})$$
 - $W_{rep}$ is the reparametrized 3x3 depthwise convolution kernel
 - $b_{rep}$ is the reparametrized bias that accounts for batch norm.
-
-
-#### Hybrid Implementation
-TODO: where is this in the paper?
-1. Ablation on the convolutional text encoder with 6-layers, 11 size kernel was the best tradeoff
-2. Use depth-wise 2D convolutional layers(for efficency)
-3. Reshaping of the 3d input tensor in to the *BC1S* standard
-4. "The FFN layers enable interactions between token's channel dimensions. Since the convolution layer is 2D, we simply reuse the reparameterization process described in [62]"
-
-##### FastVit
-FastViT is a hybrid transformer and has **4 distinct stages** which operate at different scales, plus a stem head for processing raw embeddings of the input.
-
-The main introductions were:
-1. use of RepMixer block to remove skip connections
-2. use of linear train-time overparameterization to improve accuracy
-3. use of large convolutional kernels to substitute self-attention layers in early stages
-   
-The first 3 are the same stacked on top of each other, with no attention mechanism but RepMixer as token mixing component which is faster and emulates the behavior of a classic ViT.
-While in the forth is done the CPE (which will be overparametrize in the training) and there is the attention mechanism.
-
-**CPE:** *Conditional Positional Encoding* which instead of relying on fixed positional vectors, CPEs adjust the positional encoding vectors in response to the specific context of the input, enabling more flexible and context-aware representations.
-
-**RepMixer:** Is a **convolutional mixing**(not with self attention like classical token mixing) that differentiate between training and inference time by doing:
-- *Training*: a simple DepthWise Convolution  with BN and skip connection
-- *Inference*: they leave skip connection and everything is represented just with a DepthWise Convolution which incorporate the previous skip. This is called **structural reparameterization**
-
-![RepMixerFastVit](./images/FastVitRepMixer.png) ![RepMixer](./images/RepMixer.png)
-
-*Stage 1-2-3*
-
-![Stage](./images/Stage.png)
-
-*Stage 4*
-
-![Stage4](./images/Stage4.png)
-
-*ConvFFN*
-
-![ConvFFN](./images/ConvFFN.png)
-
-##### Structural Reparametrization
-This technique consist to have different architectures between train and inference time, removing all the skip connections and having a much simpler structure at inference time permits to keep the knowledge from the specific block while reducing notably the latency during inference.
-
-This is done in this specific case collapsing every skip connection and every other operations in a single depth wise convolutional block.
-
-*From RepMobile*
-
-![image-SR](./images/SR_1.png)
-
-![fromBNtoConv](./images/SR_2.png)
-
-![SR_3](./images/SR_3.png)
 
 ##### Convolutional Token Mixing
 Inside a transformer, instead of using a classical self attention mechanism during the token mixing part, it has been shown that similar results could be achieved especially in the first blocks of the transformer using the convolutional counter part but speeding up latency and training wise.
@@ -277,6 +277,8 @@ So:
 
 ### Dataset
 with a single node 8xA100 61.7% zero-shot on ImageNet-val, with ViT-B/16 trained on DataCompDR-12M. In $~1$ day.
+
+Appendix G: Performance of other models on DataCompDR-12M - Tab. 19.
 
 ### Model
 MobileCLIP-S0: 5x faster, 3x smaller than OpenAI ViT-B/16 CLIP, same average accuracy.
