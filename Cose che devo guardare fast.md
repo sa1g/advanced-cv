@@ -1,27 +1,3 @@
-# TODO TOGETHER (ALONE at HOME)
-1. Rileggere Mobile Clip
-	1. obiettivi
-	2. intro a cosa hanno introdotto
-		1. reinforce data
-		2. multi-model reinforced training (loss)
-		3. hybrid text encoder (Text-Rep Mixer)
-		4. hybrid image encoder (Fast Vit Inspired)
-	3. risultati e specifiche (hw, latency, dataset, architettura, training time, storage size)
-2. Possibili migliorie
-	1. dataset reinforce
-		1. https://arxiv.org/abs/2405.11919 -> idea di ettore, dataset caption intelligent reduction wrt estimated quality wrt generated captions -> objective to reduce the training time and potentially (small gain) in accuracy.
-		2. PruMer (towards the dataset creation)-> 
-			1. velocizzare la creazione del dataset rinforzato
-	2. loss 
-		1. implementare tinyClip -> obiettivo di ridurre ancora piu' il modello -> less latency, less training time
-		2. Mostrare comparison tra risultati Mobile e Tiny: accuracy, dimensioni modello, training time
-		3. Possibile implementazione di Patch Ranking per fare pruning sul ViT come sostituto alla sparsity(idea)
-	3. inference
-		1. prumer (towards model efficiency)
-			1. rendere il modello piu' veloce (forse occupa meno vram? da vedere)
-	4. architecture (?)
-		1. Sigmoid Self-Attention -> NotebookLM salvaci tu
------------------------------------------
 # 1 - MobileClip
 
 ## Objective
@@ -126,7 +102,7 @@ where:
 - $KL$ is the Kullback-Leibler divergence
 - $\tau$ is the temperature
 - $\lambda$ is a tradeoff parameter
-- $\mathcal{L}_{Distill}^{T2I}$ is computed by swalpping the text and imageembedding terms of $\mathcal{L}_{Distill}^{I2T}$
+- $\mathcal{L}_{Distill}^{T2I}$ is computed by swalpping the text and image embedding terms of $\mathcal{L}_{Distill}^{I2T}$
 
 ### Efficient Training
 For every sample, we read the image $x_{img}^{(i)}$ and the corresponding ground-truth caption $x^{(i)}_{txt}$ form the dataset.
@@ -148,7 +124,7 @@ We compute the feature embeddings of these models for augmented images $\hat{x}^
 ## Architecture
 Variants of MobileCLIP use hybrid CNN/transformer architectures with **structural reparametrization in image and text encoders** to reduce the size and latency.  
 
-### Hyrid Text Encoder - Text-RepMixer
+### Hybrid Text Encoder - Text-RepMixer
 In classic CLIP is paired the vision transformer with a classical transformer with self-attention layers for text encoding, this works well but it's not efficient.
 <!-- - Recent work [67] showed that **convolutions can be as effective for text encoding** but we found that purely convolutional architectures underperform their transformer counterparts. -->
 We introduce a **hybrid text encoder(Conv/Transf) which makes use of 1-D convolutions and self-attention layers**: *Text-RepMixer* which decouples train-time and inference-time architectures. Inspired by reparametrizable convolutional token mixing (RepMixer, introduced in [62]). More in the paper and **Appendix F**.
@@ -481,34 +457,5 @@ $\mathcal{P_v^i = MP_t^i}$
 **2.4.4 Possible Integrations**
 1. Adding to the trained MobileClip -> to understand if is possible in the middle layers
 2. Loss integration in the sparsity loss -> during training, every n batches we prune some tokens and compute the scores. **What would be the upgrades?**
-
----
-
-# OLD
-
- Reinforloss function
-- synthetic captions
-	- CoCa [74] -> due nozioni su questo
-- significato di strong teacher in un ensemble teacher
-
-- architettura di mobile clip
-	- structura reparametrizatoin in image and text encoders -> spiegare bene cosa hanno fatto 
-	- Text-RepMixer (guarda 2.2.1 nel nostro MobileClip)
-		- come funziona
-		- cosa sono i filtering networks [16]?
-		- e' basato su RepMixer
-			- come funziona?
-		- migliorie rispetto RepMixer
-		-  **hybrid text encoder(Conv/Transf) which makes use of 1-D convolutions and self-attention layers**: _Text-RepMixer_ which decouples train-time and inference-time architectures.
-			- Decouple train-time and inference-time -> HOW?
-		- implementation
-		- Appendice E
-	- MCi
-		- based on FastViT [62]
-		- guarda il 2.2.2
-		- guarda appendice A
-
-
-- PuMer (token pruning and merging)
-- TinyClip
-	- vedere la loss e come si potrebbe integrare
+   1. If I compute the golden ranking and train the predictor directely in a epoch style, with the training sample number between epochs decreasing exponentially over iterations, also increasing the token number to remove up to a fixed value gradually: I obtain surely a small training advantage in terms of performance, especially in the last phases. No bad IDEA i cannot change dinamically my training architecture.
+3. If I just trained Parallely my Golden Ranking using the target embeddings as similarity function, I do for every training step for the last % of the training many forward passes with the missing tokens and pass the resulting similarity scores to the predictor which is trained in parallel, this takes 
