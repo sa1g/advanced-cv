@@ -93,7 +93,7 @@ Novel training strategy that incorporates knowledge transfer from a pre-trained 
 
 ### Loss Function
 
-$$\mathcal{L}_{Total}(\mathcal{B}) = (1-\lambda) \mathcal{L}_{Distill}(\mathcal{B}) + \lambda \mathcal{L}_{Distill}(\mathcal{B})$$
+$$\mathcal{L}_{Total}(\mathcal{B}) = (1-\lambda) \mathcal{L}_{CLIP}(\mathcal{B}) + \lambda \mathcal{L}_{Distill}(\mathcal{B})$$
 
 $$\mathcal{L}_{Distill}(\mathcal{B}) = \frac{1}{2} \mathcal{L}^{I2T}_{Distill}(\mathcal{B}) + \frac{1}{2}\mathcal{L}^{T2I}_{Distill}(\mathcal{B})$$
 $$\mathcal{L}_{Distill}^{I2T} = \frac{1}{bK} \sum_{k=1}^{K}KL(\mathcal{S}_{\tau_k}(\Psi^{(k)}_{img}, \Psi^{(k)}_{txt}) || \mathcal{S}_{\hat(\tau)}(\Phi_{img}, \Phi_{txt}))$$
@@ -111,7 +111,7 @@ Using this data we construct two data batches:
 - $\mathcal{B}_{real}$ augmented image, real caption pairs
 - $\mathcal{B}_{syn}$ augmented image, synthetic caption pairs
 and compute our trainig loss separately on both. The final loss is:
-$$\sum_{\mathcal{B} \in \{\mathcal{B}_{real}, \mathcal{B}_{syn}\}} \mathcal{L}_{Total}(\mathcal{B})$$
+	$$\sum_{\mathcal{B} \in \{\mathcal{B}_{real}, \mathcal{B}_{syn}\}} \mathcal{L}_{Total}(\mathcal{B})$$
 Note that we can compute the total loss after a forward pass of the student model without any extra teacher related computations since the teacher embeddings required to compute the distillation loss are readily available as part of the dataset.
 
 ### Ensemble Teacher
@@ -281,6 +281,21 @@ On *DataCompDR-12M*:
 # 2 - Improvements
 
 ### 2.1 Dataset Reinforcement
+ https://arxiv.org/abs/2405.11919 -> idea di ettore, dataset caption intelligent reduction wrt estimated quality wrt generated captions -> objective to reduce the training time and potentially (small gain) in accuracy.
+
+- Rigenerare le caption identiche o troppo simili.
+
+L'idea sarebbe di usare CLIPScore (https://arxiv.org/pdf/2104.08718) o FLEUR (https://aclanthology.org/2024.acl-long.205.pdf) per fare una stima della qualità delle captions generate e ridurre quelle che sono di bassa qualità. Questo potrebbe portare a una convergenza piu' rapida, di poco, ma potrebbe essere comunque un guadagno non da poco.
+E' da considerare che CLIPScore ci mette circa 20ms/immagine (con una RTX 3090), mentre FLEUR 0.70-0.76s/immagine, senza considerare che FLEUR usa LLM che possono allucinare. Quindi, sebbene, FLEUR ha una accuratezza piu' alta rispetto CLIPScore, questi (o una sua versione migliorata) sarebbe la scelta migliore, anche perche' potremmo usare l'ensemble.
+
+Usare solo CLIPScore puo' portare a caption troppo simili, quindi una "reward fn" migliore e' necessaria. Un'idea e' e.g. CLIPScore (image-text alignment) + BERTScore (text similarity and fluency) + diversity penalty (prevent repeated captions). Tutto questo per forzare il modello a generare caption piu' diverse e di qualità.
+
+Idealmente per fare questo sarebbe necessario un finetuning, qui la soluzione sarebbe farlo in RL con la reward function sopra descritta, su e.g. DataComp. Questo sicuramente e' pensate da fare e il trade-off costo-benefici e' probabilmente negativo. (si avrebbe probabilmente una miglioria del <5%, wow)
+
+Inoltre nel paper non e' stato investigato l'effetto di avere piu' di 5 caption, quindi potrebbe essere interessante vedere se avere piu' caption possa portare a una miglioria. -> sicuramente porta ad avere piu' dati nel dataset, quindi il tradeoff peso-performance e' da considerare.
+
+- sigmoid-self-attention: 
+
 
 ### 2.2 TinyCLIP on MobileClip - Loss integration
 
