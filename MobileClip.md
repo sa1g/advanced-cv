@@ -1,4 +1,27 @@
 # AdvancedCV project - MobileCLIP 
+## Table of Contents
+- [AdvancedCV project - MobileCLIP](#advancedcv-project---mobileclip)
+  - [Table of Contents](#table-of-contents)
+- [1. Overview](#1-overview)
+- [2. Fundamentals](#2-fundamentals)
+  - [2.1 Multi-Modal Reinforced Training and Dataset Reinforcement](#21-multi-modal-reinforced-training-and-dataset-reinforcement)
+    - [2.1.1 Motivation](#211-motivation)
+    - [2.1.2 Reinforced Dataset](#212-reinforced-dataset)
+    - [2.1.3 Multi-Model Knowledge Transfer](#213-multi-model-knowledge-transfer)
+  - [2.2 Model Architecture](#22-model-architecture)
+    - [2.2.1 Hybrid Text Encoder — Text-RepMixer](#221-hybrid-text-encoder--text-repmixer)
+    - [2.2.2 Hybrid Image Encoder — MCi (Based on FastViT)](#222-hybrid-image-encoder--mci-based-on-fastvit)
+      - [Why Convolutional Mixing?](#why-convolutional-mixing)
+  - [2.3 Training Flow](#23-training-flow)
+- [3. Possible Improvements](#3-possible-improvements)
+  - [3.1 More Advanced Distillation \& Compression](#31-more-advanced-distillation--compression)
+    - [TinyCLIP-style Distillation](#tinyclip-style-distillation)
+  - [3.2 Token Pruning and Merging for faster inference](#32-token-pruning-and-merging-for-faster-inference)
+    - [PuMer-Style Techniques (Pruning + Merging)](#pumer-style-techniques-pruning--merging)
+    - [Patch Ranking Pruning](#patch-ranking-pruning)
+  - [3.3 Other Potential Ideas](#33-other-potential-ideas)
+- [4. References](#4-references)
+- [Contributors](#contributors)
 
 # 1. Overview
 
@@ -238,7 +261,7 @@ Both mechanisms use a smilarity measure between the keys of each token vector, *
 	  <div style="flex:2; align-items:center;margin-top:10px">
 	  <b>MAM application</b>
 	  <ul>
-	  <li>Although PuMer was introduced for ViLT, similar strategies could be adapted for MobileCLIP's hybrid architecture to reduce computation on the image side through like <b>Modality-Aware Merging</b>.</li>
+	  <li>Although PuMer was introduced for ViLT, similar strategies could be adapted for MobileCLIP's hybrid architecture to reduce computation on the image side through like <b>Modality-Aware Merging</b></li>
    </ul>
    </div>
    </div>
@@ -247,7 +270,36 @@ Both mechanisms use a smilarity measure between the keys of each token vector, *
   - Another approach ranks patch tokens by various scoring functions (confidence scores, label-driven scores, or feature preservation).  
   - Training a lightweight predictor can approximate these “Golden Rankings” and remove the least useful tokens on the fly.
 
-   *Patch Ranking Problems*
+
+<div style="display:flex;align-items: center;justify-content: flex-start;border: 4px solid;border-color:rgb(187, 49, 39); width:90%; border-radius:10px;margin:15px">
+	  <div style="height: 25px;">
+   
+   <img src="./images/Cross.png" style="margin-left: 10px;margin-right: 10px;">
+   </div>
+	  <div style="flex:2; align-items:center;margin-top:10px">
+	  <b>Different Architecture</b>
+	  <ul>
+	  <li>The image and text encoder are not transformers so <b>the prompt tuning</b> done in the original implementation to compensate the patch removal <b>is not possible</b></li>
+     <li>Training the patch ranking estimator require more time and resources  
+     </li>
+   </ul>
+   </div>
+   </div>
+
+<div style="display:flex;align-items: center;justify-content: flex-start;border: 4px solid;border-color:rgb(81, 187, 39); width:90%; border-radius:10px;margin:15px">
+	  <div style="height: 25px;">
+   
+   <img src="./images/Spunta.png" style="margin-left: 10px;margin-right: 10px;">
+   </div>
+	  <div style="flex:2; align-items:center;margin-top:10px">
+	  <b>Reliable Token Reduction</b>
+	  <ul>
+	  <li>With the "Golden Rule" estimator trained and placed before the transformer blocks in both the image and text encoder, <b>we could possibly reduce the inference time in a minor accuracy and genralization loss</b></li>
+     <li>This method permits to choose appropriately the number of tokens to remove, to obtain a better tradeoff latency/accuracy tradeoff</li>
+   </ul>
+   </div>
+   </div>
+
 ## 3.3 Other Potential Ideas
 
 - **Data-Centric Enhancements**  
@@ -255,23 +307,18 @@ Both mechanisms use a smilarity measure between the keys of each token vector, *
 - **Dynamic Input Resolution**  
   - Adjust input resolution on a per-sample basis: low-resolution inference for simpler images, high-resolution for more complex ones.  
 
-By combining some or all of these strategies—robust reinforcement, advanced distillation, and sophisticated token pruning—future versions of MobileCLIP can achieve even higher efficiency and performance on resource-limited devices.
+By combining some or all of these strategies: robust reinforcement, advanced distillation and sophisticated token pruning, future versions of MobileCLIP could achieve even higher efficiency. 
 
 # 4. References
 
+1. [MobileCLIP](https://arxiv.org/abs/2311.17049v2)
+2. [TinyCLIP](https://arxiv.org/abs/2309.12314)
+3. [FastViT](https://arxiv.org/abs/2303.14189)
+4. [PuMer](https://arxiv.org/abs/2305.17530)
+5. [PatchRanking](https://arxiv.org/html/2409.14607v1)
+6. [Sigmoid-SelfAttention](https://arxiv.org/abs/2409.04431)
 
-## Contributors
+# Contributors
 - [Ettore Saggiorato](https://github.com/sa1g)
 
 - [Emanuele Poiana](https://github.com/IlPoiana)
-
-# 5. Additional Material
-
-In this section are present links to concepts that are at the basis of the work explained in this document
-
-CLIP
-TinyClip
-PuMer
-Patch Ranking
-Sigmoid Attention Layer
-Synthetic Captioning and Image augmentation
